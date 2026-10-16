@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"; import { connectDB } from "@/lib/db"; import { Order } from "@/models/Order"; import { sendEmail } from "@/lib/email";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export async function POST(req:Request){try{await connectDB();const b=await req.json();if(!Array.isArray(b.items)||!b.items.length)return NextResponse.json({error:"At least one item is required"},{status:400});const subtotal=Number(b.subtotal)||0,gstTotal=Number(b.gstTotal)||0,grandTotal=Number(b.grandTotal)||subtotal+gstTotal;const o=await Order.create({...b,subtotal,gstTotal,grandTotal,orderNumber:`NGZ-${Date.now().toString().slice(-8)}`,orderStatus:"new"});try{await sendEmail(process.env.DISTRIBUTOR_EMAIL||"",`New order ${o.orderNumber}`,`<h2>New order received</h2><p>Order: ${o.orderNumber}</p><p>Company: ${safe(b.companyName||"")}</p><p>Total: ₹${grandTotal.toFixed(2)}</p>`)}catch(e){console.error(e)}return NextResponse.json(o,{status:201})}catch(e){console.error(e);return NextResponse.json({error:"Could not create order"},{status:500})}}
 export async function GET(){try{await connectDB();return NextResponse.json(await Order.find().sort({createdAt:-1}).limit(100).lean())}catch(e){return NextResponse.json({error:"Unable to load orders"},{status:500})}}
 function safe(s:string){return s.replace(/[&<>"]/g,"") }

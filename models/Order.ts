@@ -1,3 +1,3 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Model } from "mongoose";
 const OrderSchema = new Schema({orderNumber:{type:String,unique:true},customerId:{type:Schema.Types.ObjectId,ref:"User"},customerEmail:String,companyName:String,gstin:String,items:[{productId:{type:Schema.Types.ObjectId,ref:"Product"},title:String,sku:String,qty:Number,price:Number,gst:Number}],subtotal:Number,gstTotal:Number,grandTotal:Number,paymentMethod:{type:String,default:"enquiry"},orderStatus:{type:String,enum:["new","pending","confirmed","shipped","delivered","cancelled"],default:"new"},notes:String},{timestamps:true});
-export const Order = mongoose.models.Order || mongoose.model("Order",OrderSchema);
+export const Order = (mongoose.models.Order || mongoose.model("Order",OrderSchema)) as Model<any>;

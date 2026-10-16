@@ -1,3 +1,5 @@
 import { NextResponse } from "next/server"; import { connectDB } from "@/lib/db"; import { Booking } from "@/models/Booking"; import { sendEmail } from "@/lib/email";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 export async function POST(req:Request){try{await connectDB();const b=await req.json();const bk=await Booking.create({...b,status:"booked"});try{await sendEmail(process.env.DISTRIBUTOR_EMAIL||"","New booking received",`<p>${JSON.stringify(b).replace(/[<>]/g,"")}</p>`)}catch(e){console.error(e)}return NextResponse.json(bk,{status:201})}catch(e){return NextResponse.json({error:"Could not create booking"},{status:500})}}
 export async function GET(){try{await connectDB();return NextResponse.json(await Booking.find().sort({createdAt:-1}).limit(100).lean())}catch(e){return NextResponse.json({error:"Unable to load bookings"},{status:500})}}
