@@ -15,6 +15,15 @@ function useOverlay(open: boolean, onClose: () => void) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
 
+  // Parents almost always pass an inline arrow, so `onClose` changes identity on
+  // every render. Keeping it in a ref lets the effect below depend only on
+  // `open`: previously each keystroke in a modal form re-ran the effect, whose
+  // focus timer stole focus from the input and dropped it on the close button.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!open) return;
 
@@ -32,7 +41,7 @@ function useOverlay(open: boolean, onClose: () => void) {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -60,7 +69,9 @@ function useOverlay(open: boolean, onClose: () => void) {
       document.body.style.overflow = previousOverflow;
       restoreRef.current?.focus?.();
     };
-  }, [open, onClose]);
+    // `open` only: re-running while the overlay is shown resets focus and the
+    // scroll lock for no reason (see the onCloseRef comment above).
+  }, [open]);
 
   return containerRef;
 }
