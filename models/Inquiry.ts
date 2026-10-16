@@ -1,0 +1,3 @@
+import mongoose, { Schema } from "mongoose";
+const InquirySchema = new Schema({customerId:{type:Schema.Types.ObjectId,ref:"User"},guestName:String,guestEmail:{type:String,required:true},guestPhone:String,guestCompany:String,productId:{type:Schema.Types.ObjectId,ref:"Product"},productTitle:String,quantity:{type:Number,default:1},message:String,status:{type:String,enum:["new","contacted","quoted","closed"],default:"new"}},{timestamps:true});
+export const Inquiry = mongoose.models.Inquiry || mongoose.model("Inquiry",InquirySchema);

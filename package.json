@@ -1,0 +1,35 @@
+{
+  "name": "industrial-distributor-os",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.5.1",
+    "framer-motion": "^11.11.17",
+    "lucide-react": "^0.468.0",
+    "mongoose": "^8.9.5",
+    "next": "14.2.24",
+    "next-auth": "^5.0.0-beta.25",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "resend": "^4.0.1",
+    "razorpay": "^2.9.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.2",
+    "dotenv": "^16.4.7"
+  }
+}

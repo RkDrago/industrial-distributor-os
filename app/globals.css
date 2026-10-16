@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root{color-scheme:light}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f6f8fb;color:#101b2d;font-family:Arial,Helvetica,sans-serif}button,input,select,textarea{font:inherit}.hero-grid{background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:36px 36px}.glass{background:rgba(255,255,255,.08);backdrop-filter:blur(14px)}.container{width:min(1180px,calc(100% - 40px));margin-inline:auto}.eyebrow{letter-spacing:.16em;text-transform:uppercase;font-size:11px;font-weight:800}.product-image{transition:transform .5s ease}.product-card:hover .product-image{transform:scale(1.06)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@keyframes softFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.hero-grid h1{animation:fadeUp .75s cubic-bezier(.2,.7,.2,1) both}
+.hero-grid h1+p{animation:fadeUp .85s .12s both}
+.hero-grid .group{animation:fadeUp .9s .2s both}
+.hero-grid img{animation:fadeUp .8s .1s both}
+.hero-grid .absolute.top-8{animation:softFloat 5s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
