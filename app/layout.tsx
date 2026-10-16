@@ -1,4 +1,51 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
-export const metadata: Metadata = {title:"Norgez Industrial | B2B Supply Platform",description:"A smarter way to source industrial essentials in bulk."};
-export default function RootLayout({children}:{children:React.ReactNode}) { return <html lang="en"><body>{children}</body></html>; }
+import { CartProvider } from "@/components/cart/CartProvider";
+import { ToastProvider } from "@/components/ui/Toast";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "Norgez Industrial | Industrial supplies for business",
+    template: "%s | Norgez Industrial",
+  },
+  description:
+    "Source industrial products for your business — compare bulk prices, order with GST invoices, and track every order in one place.",
+  applicationName: "Norgez Industrial",
+  openGraph: {
+    type: "website",
+    siteName: "Norgez Industrial",
+    title: "Industrial Supplies. Made Simple.",
+    description:
+      "Find quality industrial products, compare bulk prices, and order for your business in one place.",
+    url: siteUrl,
+  },
+  robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#111827",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en-IN" className={inter.variable}>
+      <body>
+        <ToastProvider>
+          <CartProvider>{children}</CartProvider>
+        </ToastProvider>
+      </body>
+    </html>
+  );
+}

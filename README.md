@@ -22,9 +22,25 @@ This is a **working starter / demo foundation**, not a finished audited commerce
    - Set `DISTRIBUTOR_EMAIL` to the address that should receive alerts.
    - Email requires `RESEND_API_KEY`. For production, verify a sending domain in Resend and set `RESEND_FROM_EMAIL` to an approved sender. Without a key, email is logged as a mock in the terminal.
    - `NEXTAUTH_*` are reserved for adding authentication; auth is not wired to protect routes in this starter.
-5. Seed demo products: `node scripts/seed.mjs`
+5. Seed the default administrator and the product catalogue: `npm run seed` (add `-- --demo` for sample orders, enquiries and bookings).
 6. Start the app: `npm run dev`
-7. Open `http://localhost:3000`, `/products`, and `/admin`.
+7. Open `http://localhost:3000`, `/products`, and `/admin/login`. Sign in with `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
+
+## Administrator access
+
+The dashboard is protected by a signed, HttpOnly session cookie and requires an administrator account. There are two credential sources, and either one signs you in:
+
+- **The environment operator** — `ADMIN_EMAIL` with `ADMIN_PASSWORD` (or `ADMIN_PASSWORD_HASH`). This is the break-glass account and keeps working even if the database is unreachable.
+- **Administrators in the `users` collection** — created by the one-time bootstrap described below.
+
+**Default administrator on a fresh database.** When the `users` collection holds no administrator at all, the app creates one from `ADMIN_EMAIL` and `ADMIN_PASSWORD` (stored as a bcrypt hash, never in plain text). This happens automatically on the first request to `/admin/login`, and also when you run `npm run seed`. The rules that keep it safe:
+
+- It only writes when there are **zero** administrators, so it can never overwrite, duplicate or downgrade an existing account.
+- If a user with `ADMIN_EMAIL` already exists, that account is promoted to administrator instead of a second record being created.
+- Without `ADMIN_EMAIL` plus `ADMIN_PASSWORD` (minimum 8 characters) or `ADMIN_PASSWORD_HASH`, it does nothing and logs why. No password is ever invented or printed to the logs.
+- `ADMIN_SESSION_SECRET` is still required, because it signs the session cookie.
+
+Changing `ADMIN_EMAIL`/`ADMIN_PASSWORD` later does not change an existing database administrator — the environment values only seed the first one. Use the break-glass environment account to get in, then update the record deliberately.
 
 ## Add a product
 
@@ -74,7 +90,8 @@ If the repository already has a remote, inspect it with `git remote -v` rather t
 
 - `/` — marketing storefront
 - `/products` — searchable product catalog + enquiry form
-- `/admin` — live-polling operations dashboard
+- `/admin/login` — administrator sign-in
+- `/admin` — polling operations dashboard (orders, enquiries, bookings, catalogue, inventory, customers, notifications, settings)
 - `GET/POST /api/products`
 - `GET/POST /api/orders`
 - `PATCH /api/orders/:id`
@@ -84,7 +101,8 @@ If the repository already has a remote, inspect it with `git remote -v` rather t
 
 ## Production readiness checklist
 
-- [ ] Protect `/admin` and every administrative API with server-side role checks.
+- [x] Protect `/admin` and every administrative API with server-side session checks (`requireAdmin` on every admin route, `isSameOrigin` on every mutation).
+- [ ] Rotate `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` before go-live, and give each operator their own account instead of sharing one credential.
 - [ ] Add customer registration/login, session handling, password reset, and account security.
 - [ ] Validate product IDs and quantities on the server; calculate prices and GST on the server rather than trusting browser totals.
 - [ ] Implement Razorpay order creation, signature verification, webhook verification, refunds, and idempotency if taking payments.
