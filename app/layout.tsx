@@ -78,7 +78,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en-IN" className={inter.variable}>
-      <body>
+      <body className="custom-scrollbar">
         <ToastProvider>
           <CartProvider>{children}</CartProvider>
         </ToastProvider>

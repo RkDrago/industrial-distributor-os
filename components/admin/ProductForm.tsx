@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Plus, Trash2, Upload } from "lucide-react";
 import { Alert } from "@/components/ui/feedback";
 import { Button } from "@/components/ui/Button";
 import { Checkbox, Input, Select, Textarea } from "@/components/ui/form";
-import type { BrandDto, CategoryDto } from "@/lib/types";
+import type { BrandDto, CategoryDto, ProductDto } from "@/lib/types";
 
 export type Slab = { minQty: string; price: string };
 export type Spec = { key: string; value: string };
@@ -51,6 +51,33 @@ export const EMPTY_DRAFT: Draft = {
   specifications: [],
   images: [],
 };
+
+/** Turn a stored product into the editable draft the form understands. */
+export function productToDraft(product: ProductDto): Draft {
+  return {
+    title: product.title ?? "",
+    sku: product.sku ?? "",
+    hsnCode: product.hsnCode ?? "",
+    categoryId: product.categoryId ?? "",
+    brandId: product.brandId ?? "",
+    unit: product.unit ?? "per piece",
+    moq: String(product.moq ?? 1),
+    stock: String(product.stock ?? 0),
+    gstPercent: String(product.gstPercent ?? 18),
+    featured: Boolean(product.featured),
+    isActive: product.isActive !== false,
+    mrp: product.price?.mrp ? String(product.price.mrp) : "",
+    distributorPrice: product.price?.distributorPrice ? String(product.price.distributorPrice) : "",
+    bulkSlabs: (product.price?.bulkSlabs ?? []).map((slab) => ({
+      minQty: String(slab.minQty),
+      price: String(slab.price),
+    })),
+    shortDescription: product.shortDescription ?? "",
+    description: product.description ?? "",
+    specifications: (product.specifications ?? []).map((spec) => ({ key: spec.key ?? "", value: spec.value ?? "" })),
+    images: Array.isArray(product.images) ? [...product.images] : [],
+  };
+}
 
 export type ProductPayload = {
   title: string;
@@ -99,16 +126,39 @@ export function buildProductPayload(draft: Draft): ProductPayload {
 }
 
 /**
+ * Warn before losing edits. Fires on browser/tab navigation (`beforeunload`)
+ * and on the Cancel button, which is where people actually lose work.
+ */
+function useUnsavedChangesGuard(onCancel: () => void, dirty: boolean) {
+  useEffect(() => {
+    if (!dirty) return;
+    function handler(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      // Some browsers still need a returnValue set to show the prompt.
+      event.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+
+  return () => {
+    if (dirty && !window.confirm("You have unsaved changes. Leave without saving?")) return;
+    onCancel();
+  };
+}
+
+/**
  * The full product editor: SKU, HSN code, minimum order quantity, GST rate,
  * distributor price and quantity-based tiers. Bulk tiers are edited as
  * explicit rows so a price break can never be implied.
  *
- * It is rendered both inside the edit modal on the products list and on the
- * dedicated create page at /admin/products/new.
+ * It is rendered on the dedicated create (/admin/products/new) and edit
+ * (/admin/products/[id]/edit) pages.
  */
 export function ProductForm({
   draft,
   setDraft,
+  initialDraft = EMPTY_DRAFT,
   categories,
   brands,
   saving,
@@ -120,6 +170,8 @@ export function ProductForm({
 }: {
   draft: Draft;
   setDraft: React.Dispatch<React.SetStateAction<Draft>>;
+  /** Compared against `draft` to detect unsaved edits. */
+  initialDraft?: Draft;
   categories: CategoryDto[];
   brands: BrandDto[];
   saving: boolean;
@@ -134,6 +186,11 @@ export function ProductForm({
   const fileRef = useRef<HTMLInputElement | null>(null);
 
   const payload = useMemo(() => buildProductPayload(draft), [draft]);
+
+  // Only guard once the form is interactive; the page-level skeleton state
+  // means no edits are possible yet.
+  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(initialDraft), [draft, initialDraft]);
+  const confirmCancel = useUnsavedChangesGuard(onCancel, dirty && !saving);
 
   async function uploadImage(file: File) {
     setUploading(true);
@@ -571,7 +628,7 @@ export function ProductForm({
       </fieldset>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
-        <Button variant="outline" onClick={onCancel} disabled={saving}>
+        <Button variant="outline" onClick={confirmCancel} disabled={saving}>
           Cancel
         </Button>
         <Button type="submit" loading={saving} loadingLabel="Saving…">

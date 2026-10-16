@@ -12,7 +12,6 @@ import { useToast } from "@/components/ui/Toast";
 import { formatINR, formatNumber, formatPercent } from "@/lib/format";
 import type { CatalogueFacets } from "@/lib/catalogue-params";
 import type { BrandDto, CategoryDto, ProductDto } from "@/lib/types";
-import { EMPTY_DRAFT, ProductForm, type Draft, type ProductPayload } from "./ProductForm";
 
 const SORTS = [
   { value: "newest", label: "Newest first" },
@@ -27,9 +26,10 @@ const PAGE_SIZE = 20;
 /**
  * Product management.
  *
- * Creating a product happens on its own page (/admin/products/new) so the full
- * editor has room to breathe; only editing keeps the modal. The form itself
- * lives in ProductForm and is shared by both.
+ * Both creating and editing a product happen on dedicated sub-routes
+ * (/admin/products/new and /admin/products/[id]/edit) rather than in a modal,
+ * so the full editor has room to breathe and a refresh or back button behaves
+ * the way people expect. This view only lists, filters and archives.
  */
 export function ProductsView({
   initialCategory = "",
@@ -58,12 +58,6 @@ export function ProductsView({
   const [sort, setSort] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-
-  const [formOpen, setFormOpen] = useState(false);
-  const [editing, setEditing] = useState<ProductDto | null>(null);
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
 
   const [removing, setRemoving] = useState<ProductDto | null>(null);
   const [removingBusy, setRemovingBusy] = useState(false);
@@ -129,63 +123,6 @@ export function ProductsView({
   const activeFilterCount = [query, category, brand, availability].filter(Boolean).length;
   const productCountByCategory = new Map(facets.categories.map((entry) => [entry.slug, entry.count]));
   const productCountByBrand = new Map(facets.brands.map((entry) => [entry.slug, entry.count]));
-
-  function openEdit(product: ProductDto) {
-    setEditing(product);
-    setDraft({
-      title: product.title ?? "",
-      sku: product.sku ?? "",
-      hsnCode: product.hsnCode ?? "",
-      categoryId: product.categoryId ?? "",
-      brandId: product.brandId ?? "",
-      unit: product.unit ?? "per piece",
-      moq: String(product.moq ?? 1),
-      stock: String(product.stock ?? 0),
-      gstPercent: String(product.gstPercent ?? 18),
-      featured: Boolean(product.featured),
-      isActive: product.isActive !== false,
-      mrp: product.price?.mrp ? String(product.price.mrp) : "",
-      distributorPrice: product.price?.distributorPrice ? String(product.price.distributorPrice) : "",
-      bulkSlabs: (product.price?.bulkSlabs ?? []).map((slab) => ({ minQty: String(slab.minQty), price: String(slab.price) })),
-      shortDescription: product.shortDescription ?? "",
-      description: product.description ?? "",
-      specifications: (product.specifications ?? []).map((spec) => ({ key: spec.key ?? "", value: spec.value ?? "" })),
-      images: Array.isArray(product.images) ? [...product.images] : [],
-    });
-    setFormError(null);
-    setFormOpen(true);
-  }
-
-  async function save(payload: ProductPayload) {
-    if (saving) return;
-    setSaving(true);
-    setFormError(null);
-    try {
-      const response = await fetch(editing ? `/api/products/${editing._id}` : "/api/products", {
-        method: editing ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const detail = Array.isArray(data?.errors) && data.errors.length ? data.errors[0] : data?.error;
-        setFormError(typeof detail === "string" ? detail : "The product could not be saved.");
-        return;
-      }
-      push({
-        tone: "success",
-        title: `${payload.title} updated`,
-        description: "Storefront pages already reflect this change.",
-      });
-      setFormOpen(false);
-      setEditing(null);
-      await load();
-    } catch {
-      setFormError("We could not reach the server. Check your connection and try again.");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function remove(mode: "archive" | "delete") {
     if (!removing || removingBusy) return;
@@ -475,12 +412,13 @@ export function ProductsView({
                         </td>
                         <td className="text-right">
                           <div className="flex items-center justify-end gap-1.5">
+                            <Link href={`/admin/products/${product._id}/edit`} className="btn btn-outline btn-sm">
+                              <Pencil size={14} aria-hidden="true" />
+                              Edit
+                            </Link>
                             <Link href={`/products/${product.slug}`} className="btn btn-ghost btn-sm">
                               View
                             </Link>
-                            <Button size="sm" variant="outline" onClick={() => openEdit(product)} icon={<Pencil size={14} />}>
-                              Edit
-                            </Button>
                             <Button
                               size="sm"
                               variant="ghost"
@@ -518,9 +456,9 @@ export function ProductsView({
                       </p>
                     )}
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEdit(product)}>
+                      <Link href={`/admin/products/${product._id}/edit`} className="btn btn-outline btn-sm">
                         Edit
-                      </Button>
+                      </Link>
                       <Button size="sm" variant="ghost" onClick={() => setRemoving(product)}>
                         Remove
                       </Button>
@@ -532,36 +470,6 @@ export function ProductsView({
           )}
         </AdminPanel>
       )}
-
-      {/* ------------------------------------------------------------- edit */}
-      <Modal
-        open={formOpen}
-        onClose={() => {
-          if (!saving) {
-            setFormOpen(false);
-            setEditing(null);
-          }
-        }}
-        title={editing ? `Edit ${editing.title}` : "Edit product"}
-        description="Everything here is what the storefront, checkout and invoices read from."
-        size="lg"
-      >
-        <ProductForm
-          draft={draft}
-          setDraft={setDraft}
-          categories={allCategories}
-          brands={allBrands}
-          saving={saving}
-          formError={formError}
-          onSubmit={save}
-          onCancel={() => {
-            setFormOpen(false);
-            setEditing(null);
-          }}
-          submitLabel="Save product"
-          className="space-y-7"
-        />
-      </Modal>
 
       {/* ------------------------------------------------------------ removal */}
       <Modal

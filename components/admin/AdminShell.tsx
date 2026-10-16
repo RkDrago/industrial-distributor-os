@@ -124,7 +124,7 @@ export function AdminShell({ email, children }: { email: string; children: React
             <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-navy-300">Operations</p>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto px-3 pb-4">{nav}</div>
+        <div className="flex-1 overflow-y-auto px-3 pb-4 custom-scrollbar">{nav}</div>
         <div className="border-t border-white/10 p-3">
           <Link
             href="/"
